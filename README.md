@@ -1,4 +1,4 @@
-# 🌱 CarbonBuddy – CO₂ Shopping Tracker
+# 🌱 CarbonBuddy - AI-Powered Carbon Footprint Tracker
 
 **CarbonBuddy** is a powerful Chrome extension that helps you track and understand the carbon footprint of your online shopping activities. Get real-time CO₂ emission estimates for products on Amazon and Flipkart, and make more environmentally conscious purchasing decisions.
 
