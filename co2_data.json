@@ -1,0 +1,103 @@
+{
+  "electronics": {
+    "smartphone": { "co2": 70, "unit": "kg", "description": "Smartphone production and lifecycle" },
+    "laptop": { "co2": 300, "unit": "kg", "description": "Laptop computer manufacturing" },
+    "tablet": { "co2": 130, "unit": "kg", "description": "Tablet device production" },
+    "headphones": { "co2": 15, "unit": "kg", "description": "Headphones manufacturing" },
+    "smartwatch": { "co2": 25, "unit": "kg", "description": "Smartwatch production" },
+    "bluetooth_speaker": { "co2": 12, "unit": "kg", "description": "Bluetooth speaker manufacturing" },
+    "gaming_console": { "co2": 180, "unit": "kg", "description": "Gaming console production" },
+    "television": { "co2": 250, "unit": "kg", "description": "Television manufacturing" },
+    "camera": { "co2": 45, "unit": "kg", "description": "Digital camera production" },
+    "power_bank": { "co2": 8, "unit": "kg", "description": "Power bank manufacturing" }
+  },
+  "clothing": {
+    "cotton_tshirt": { "co2": 8.5, "unit": "kg", "description": "Cotton t-shirt production" },
+    "jeans": { "co2": 33, "unit": "kg", "description": "Denim jeans manufacturing" },
+    "polyester_shirt": { "co2": 5.5, "unit": "kg", "description": "Polyester shirt production" },
+    "wool_sweater": { "co2": 27, "unit": "kg", "description": "Wool sweater manufacturing" },
+    "leather_jacket": { "co2": 85, "unit": "kg", "description": "Leather jacket production" },
+    "sneakers": { "co2": 14, "unit": "kg", "description": "Athletic shoes manufacturing" },
+    "dress": { "co2": 12, "unit": "kg", "description": "Dress production" },
+    "underwear": { "co2": 2.5, "unit": "kg", "description": "Underwear manufacturing" },
+    "socks": { "co2": 1.8, "unit": "kg", "description": "Socks production" },
+    "hat": { "co2": 3.2, "unit": "kg", "description": "Hat manufacturing" }
+  },
+  "books": {
+    "paperback_book": { "co2": 2.3, "unit": "kg", "description": "Paperback book production" },
+    "hardcover_book": { "co2": 4.5, "unit": "kg", "description": "Hardcover book manufacturing" },
+    "magazine": { "co2": 0.8, "unit": "kg", "description": "Magazine production" },
+    "notebook": { "co2": 1.2, "unit": "kg", "description": "Notebook manufacturing" },
+    "textbook": { "co2": 6.5, "unit": "kg", "description": "Textbook production" }
+  },
+  "food": {
+    "beef_1kg": { "co2": 60, "unit": "kg", "description": "1kg beef production" },
+    "chicken_1kg": { "co2": 6.9, "unit": "kg", "description": "1kg chicken production" },
+    "pork_1kg": { "co2": 12.1, "unit": "kg", "description": "1kg pork production" },
+    "fish_1kg": { "co2": 5.4, "unit": "kg", "description": "1kg fish production" },
+    "cheese_1kg": { "co2": 21, "unit": "kg", "description": "1kg cheese production" },
+    "milk_1l": { "co2": 3.2, "unit": "kg", "description": "1 liter milk production" },
+    "eggs_dozen": { "co2": 4.8, "unit": "kg", "description": "Dozen eggs production" },
+    "bread_loaf": { "co2": 1.2, "unit": "kg", "description": "Bread loaf production" },
+    "rice_1kg": { "co2": 2.7, "unit": "kg", "description": "1kg rice production" },
+    "pasta_1kg": { "co2": 1.4, "unit": "kg", "description": "1kg pasta production" },
+    "coffee_1kg": { "co2": 17, "unit": "kg", "description": "1kg coffee beans production" },
+    "chocolate_bar": { "co2": 2.9, "unit": "kg", "description": "Chocolate bar production" },
+    "apple_1kg": { "co2": 0.4, "unit": "kg", "description": "1kg apples production" },
+    "banana_1kg": { "co2": 0.7, "unit": "kg", "description": "1kg bananas production" },
+    "tomato_1kg": { "co2": 2.1, "unit": "kg", "description": "1kg tomatoes production" }
+  },
+  "furniture": {
+    "wooden_chair": { "co2": 25, "unit": "kg", "description": "Wooden chair manufacturing" },
+    "office_desk": { "co2": 85, "unit": "kg", "description": "Office desk production" },
+    "sofa": { "co2": 150, "unit": "kg", "description": "Sofa manufacturing" },
+    "bed_frame": { "co2": 120, "unit": "kg", "description": "Bed frame production" },
+    "bookshelf": { "co2": 45, "unit": "kg", "description": "Bookshelf manufacturing" },
+    "dining_table": { "co2": 95, "unit": "kg", "description": "Dining table production" },
+    "wardrobe": { "co2": 180, "unit": "kg", "description": "Wardrobe manufacturing" },
+    "coffee_table": { "co2": 35, "unit": "kg", "description": "Coffee table production" }
+  },
+  "toys": {
+    "plastic_toy": { "co2": 5.5, "unit": "kg", "description": "Plastic toy manufacturing" },
+    "wooden_toy": { "co2": 3.2, "unit": "kg", "description": "Wooden toy production" },
+    "board_game": { "co2": 4.8, "unit": "kg", "description": "Board game manufacturing" },
+    "puzzle": { "co2": 2.1, "unit": "kg", "description": "Puzzle production" },
+    "action_figure": { "co2": 6.5, "unit": "kg", "description": "Action figure manufacturing" },
+    "doll": { "co2": 7.2, "unit": "kg", "description": "Doll production" },
+    "lego_set": { "co2": 12, "unit": "kg", "description": "LEGO set manufacturing" }
+  },
+  "home_appliances": {
+    "refrigerator": { "co2": 350, "unit": "kg", "description": "Refrigerator manufacturing" },
+    "washing_machine": { "co2": 280, "unit": "kg", "description": "Washing machine production" },
+    "microwave": { "co2": 85, "unit": "kg", "description": "Microwave oven manufacturing" },
+    "vacuum_cleaner": { "co2": 45, "unit": "kg", "description": "Vacuum cleaner production" },
+    "air_conditioner": { "co2": 320, "unit": "kg", "description": "Air conditioner manufacturing" },
+    "dishwasher": { "co2": 250, "unit": "kg", "description": "Dishwasher production" },
+    "blender": { "co2": 15, "unit": "kg", "description": "Blender manufacturing" },
+    "toaster": { "co2": 12, "unit": "kg", "description": "Toaster production" }
+  },
+  "beauty_personal_care": {
+    "shampoo_bottle": { "co2": 2.8, "unit": "kg", "description": "Shampoo bottle production" },
+    "toothbrush": { "co2": 0.5, "unit": "kg", "description": "Toothbrush manufacturing" },
+    "soap_bar": { "co2": 0.8, "unit": "kg", "description": "Soap bar production" },
+    "perfume": { "co2": 8.5, "unit": "kg", "description": "Perfume manufacturing" },
+    "lipstick": { "co2": 1.2, "unit": "kg", "description": "Lipstick production" },
+    "moisturizer": { "co2": 3.5, "unit": "kg", "description": "Moisturizer manufacturing" },
+    "deodorant": { "co2": 2.1, "unit": "kg", "description": "Deodorant production" }
+  },
+  "sports_fitness": {
+    "yoga_mat": { "co2": 8.5, "unit": "kg", "description": "Yoga mat manufacturing" },
+    "dumbbells_pair": { "co2": 25, "unit": "kg", "description": "Dumbbell pair production" },
+    "bicycle": { "co2": 95, "unit": "kg", "description": "Bicycle manufacturing" },
+    "running_shoes": { "co2": 16, "unit": "kg", "description": "Running shoes production" },
+    "tennis_racket": { "co2": 12, "unit": "kg", "description": "Tennis racket manufacturing" },
+    "basketball": { "co2": 3.5, "unit": "kg", "description": "Basketball production" },
+    "fitness_tracker": { "co2": 18, "unit": "kg", "description": "Fitness tracker manufacturing" }
+  },
+  "automotive": {
+    "car_tire": { "co2": 85, "unit": "kg", "description": "Car tire manufacturing" },
+    "car_battery": { "co2": 150, "unit": "kg", "description": "Car battery production" },
+    "motor_oil_5l": { "co2": 12, "unit": "kg", "description": "5L motor oil production" },
+    "car_seat_cover": { "co2": 15, "unit": "kg", "description": "Car seat cover manufacturing" }
+  }
+}

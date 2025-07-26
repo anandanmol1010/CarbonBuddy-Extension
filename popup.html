@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>CarbonBuddy</title>
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <div class="popup">
+    <div class="header">
+      <span>🌱</span>
+      <h1>CarbonBuddy</h1>
+      <div id="headerTotalEmissions">0.0 kg CO₂</div>
+    </div>
+    <div class="tabs">
+      <button class="tab active">🛒 Cart</button>
+      <button class="tab">📦 Product</button>
+      <button class="tab">🌍 Browsing</button>
+    </div>
+    <div class="content">
+      <div class="tab-content active">
+        <h3>🛒 Purchase History</h3>
+        <div class="stats-grid">
+          <div class="stat-card">
+            <div class="value" id="totalPurchases">0</div>
+            <div class="label">Total Items</div>
+          </div>
+          <div class="stat-card">
+            <div class="value" id="totalCO2">0.0</div>
+            <div class="label">kg CO₂</div>
+          </div>
+        </div>
+        <div id="purchaseHistory">
+          <p>No purchases logged yet.</p>
+        </div>
+      </div>
+      <div class="tab-content">
+        <h3>📦 Product Checker</h3>
+        <div style="margin-bottom:16px;">
+          <input type="text" id="productInput" placeholder="Search for any product...">
+          <button id="checkProduct">🔍 Check CO₂ Impact</button>
+        </div>
+        <div id="productResult" style="display:none;"></div>
+        <div id="recentChecks">
+          <h4>Recent Searches</h4>
+          <div id="recentChecksList">No recent searches</div>
+        </div>
+      </div>
+      <div class="tab-content">
+        <h3>🌍 Browsing Impact</h3>
+        <div class="stats-grid">
+          <div class="stat-card">
+            <div class="value" id="pagesVisited">0</div>
+            <div class="label">Pages Visited</div>
+          </div>
+          <div class="stat-card">
+            <div class="value" id="browsingCO2">0.0</div>
+            <div class="label">g CO₂</div>
+          </div>
+        </div>
+        <div id="browsingLog">
+          <p>Start browsing to see your carbon footprint!</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <script src="popup.js"></script>
+</body>
+</html> 
