@@ -234,51 +234,121 @@ async function getAIEstimation(productName) {
     console.log('[CarbonBuddy] No product name provided');
     return null;
   }
-  
-  // Load dataset if not already loaded
-  const dataset = await loadCO2Dataset();
-  if (!dataset) {
-    console.error('[CarbonBuddy] Dataset not available, using fallback');
-    return getFallbackEstimation(productName);
-  }
-  
-  const lowerName = productName.toLowerCase();
-  console.log('[CarbonBuddy] Processing with dataset:', lowerName);
-  
-  // Smart matching against dataset
-  let bestMatch = null;
-  let bestScore = 0;
-  let matchedCategory = null;
-  
-  // Search through all categories and items
-  for (const [categoryName, items] of Object.entries(dataset)) {
-    for (const [itemKey, itemData] of Object.entries(items)) {
-      const score = calculateMatchScore(lowerName, itemKey, itemData.description, categoryName);
-      if (score > bestScore) {
-        bestScore = score;
-        bestMatch = itemData;
-        matchedCategory = categoryName;
-      }
+
+  try {
+    // Load dataset first
+    const dataset = await loadCO2Dataset();
+    if (!dataset) {
+      console.error('[CarbonBuddy] Dataset not available');
+      return null;
     }
-  }
-  
-  // If we found a good match (score > 0.3), use it
-  if (bestMatch && bestScore > 0.3) {
-    const result = {
-      co2: bestMatch.co2,
-      unit: bestMatch.unit,
-      key: matchedCategory,
-      source: 'AI Dataset Match',
-      confidence: bestScore > 0.7 ? 'high' : bestScore > 0.5 ? 'medium' : 'low',
-      description: bestMatch.description
-    };
-    console.log('[CarbonBuddy] Dataset match found:', result, 'Score:', bestScore);
+    
+    // Call Gemini AI with dataset as reference
+    const result = await callGeminiAIWithDataset(productName, dataset);
+    console.log('[CarbonBuddy] Gemini AI result:', result);
+    
     return result;
+  } catch (error) {
+    console.error('[CarbonBuddy] AI estimation failed:', error);
+    return null;
   }
+}
+
+// Call Gemini AI with dataset reference
+async function callGeminiAIWithDataset(productName, dataset) {
+  const API_KEY = 'AIzaSyA83gnEatNdJbm3otgVvyNOvNqV9_I9bG8'; // Replace with your API key
   
-  // If no good match, use category-based estimation
-  console.log('[CarbonBuddy] No specific match, using category estimation');
-  return getCategoryEstimation(lowerName, dataset);
+  const prompt = `I am providing you with a comprehensive CO₂ emissions dataset for reference. Please analyze the product name and provide accurate CO₂ emission estimate.
+
+**REFERENCE DATASET:**
+${JSON.stringify(dataset, null, 2)}
+
+**PRODUCT TO ANALYZE:** "${productName}"
+
+**INSTRUCTIONS:**
+1. Use the provided dataset as reference to find similar products
+2. Match the product with the most appropriate category from the dataset
+3. Provide accurate CO₂ emission estimate based on dataset patterns
+4. If exact match not found, use similar products from dataset as reference
+5. Provide confidence level based on how well the product matches dataset items
+
+**REQUIRED JSON RESPONSE FORMAT:**
+{
+  "co2": [NUMBER],
+  "unit": "kg",
+  "key": "[category_from_dataset]",
+  "source": "Gemini AI with Dataset Reference",
+  "confidence": "high|medium|low",
+  "reasoning": "Brief explanation of estimation method"
+}
+
+**RESPOND ONLY WITH VALID JSON - NO OTHER TEXT**`;
+
+  console.log('[CarbonBuddy] Sending request to Gemini AI with dataset...');
+
+  try {
+    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent?key=${API_KEY}`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        contents: [{
+          parts: [{
+            text: prompt
+          }]
+        }]
+      })
+    });
+
+    if (!response.ok) {
+      throw new Error(`Gemini API error: ${response.status} ${response.statusText}`);
+    }
+
+    const data = await response.json();
+    console.log('[CarbonBuddy] Gemini API response:', data);
+
+    if (data.candidates && data.candidates[0] && data.candidates[0].content) {
+      const aiText = data.candidates[0].content.parts[0].text;
+      console.log('[CarbonBuddy] AI response text:', aiText);
+      
+      // Extract JSON from response
+      const jsonMatch = aiText.match(/\{[\s\S]*\}/);
+      if (jsonMatch) {
+        try {
+          const result = JSON.parse(jsonMatch[0]);
+          console.log('[CarbonBuddy] Parsed AI result:', result);
+          
+          if (result.co2 && result.unit) {
+            return {
+              co2: result.co2,
+              unit: result.unit || 'kg',
+              key: result.key || 'ai_estimated',
+              source: result.source || 'Gemini AI with Dataset',
+              confidence: result.confidence || 'medium',
+              reasoning: result.reasoning || 'AI analysis with dataset reference'
+            };
+          } else {
+            console.log('[CarbonBuddy] Invalid AI result - missing co2 or unit:', result);
+            throw new Error('Invalid AI result format');
+          }
+        } catch (parseError) {
+          console.log('[CarbonBuddy] JSON parse error:', parseError);
+          throw new Error('Failed to parse AI JSON response');
+        }
+      } else {
+        console.log('[CarbonBuddy] No JSON found in AI response');
+        throw new Error('No JSON in AI response');
+      }
+    } else {
+      console.log('[CarbonBuddy] No content in AI response');
+      throw new Error('No content in AI response');
+    }
+    
+  } catch (error) {
+    console.error('[CarbonBuddy] Gemini AI call failed:', error);
+    throw error;
+  }
 }
 
 // --- Batch AI Estimation for Cart Items ---
@@ -290,96 +360,133 @@ async function getBatchAIEstimation(productNames) {
     return [];
   }
   
-  // Load dataset if not already loaded
-  const dataset = await loadCO2Dataset();
-  if (!dataset) {
-    console.error('[CarbonBuddy] Dataset not available, using fallback for all items');
-    return productNames.map(name => getFallbackEstimation(name));
+  try {
+    // Load dataset first
+    const dataset = await loadCO2Dataset();
+    if (!dataset) {
+      console.error('[CarbonBuddy] Dataset not available');
+      return [];
+    }
+    
+    // Call Gemini AI with all products in single batch
+    const result = await callGeminiBatchAI(productNames, dataset);
+    console.log('[CarbonBuddy] Batch AI result:', result);
+    
+    return result;
+  } catch (error) {
+    console.error('[CarbonBuddy] Batch AI estimation failed:', error);
+    return [];
   }
-  
-  // TODO: Replace this with actual AI API call for batch processing
-  // For now, process each item locally using dataset
-  
-  /* 
-  // Example: Single AI API call for all products
-  const prompt = `Analyze these ${productNames.length} products and estimate CO₂ emissions for each:
+}
 
-Products:
-${productNames.map((name, i) => `${i+1}. ${name}`).join('\n')}
+// Call Gemini AI for batch processing of cart items
+async function callGeminiBatchAI(productNames, dataset) {
+  const API_KEY = 'AIzaSyA83gnEatNdJbm3otgVvyNOvNqV9_I9bG8'; // Replace with your API key
+  
+  const prompt = `I am providing you with a comprehensive CO₂ emissions dataset for reference. Please analyze ALL the products in the cart and provide accurate CO₂ emission estimates for each.
 
-Dataset categories available: ${Object.keys(dataset).join(', ')}
+**REFERENCE DATASET:**
+${JSON.stringify(dataset, null, 2)}
 
-Return JSON array with CO₂ estimates:
-[{"product": "product_name", "co2": number, "unit": "kg", "category": "category_name", "confidence": "high/medium/low"}]
+**CART PRODUCTS TO ANALYZE:**
+${productNames.map((name, index) => `${index + 1}. "${name}"`).join('\n')}
 
-Use the dataset to find the most accurate matches.`;
-  
-  // OpenAI API Example:
-  const response = await fetch('https://api.openai.com/v1/chat/completions', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': 'Bearer YOUR_API_KEY'
-    },
-    body: JSON.stringify({
-      model: 'gpt-3.5-turbo',
-      messages: [{ role: 'user', content: prompt }],
-      temperature: 0.3
-    })
-  });
-  const data = await response.json();
-  const aiResults = JSON.parse(data.choices[0].message.content);
-  
-  return aiResults.map(result => ({
-    co2: result.co2,
-    unit: result.unit,
-    key: result.category,
-    source: 'AI Batch Estimation',
-    confidence: result.confidence
-  }));
-  */
-  
-  // For now, process each item using local dataset matching
-  const results = [];
-  
-  for (const productName of productNames) {
-    const lowerName = productName.toLowerCase();
-    
-    // Smart matching against dataset
-    let bestMatch = null;
-    let bestScore = 0;
-    let matchedCategory = null;
-    
-    // Search through all categories and items
-    for (const [categoryName, items] of Object.entries(dataset)) {
-      for (const [itemKey, itemData] of Object.entries(items)) {
-        const score = calculateMatchScore(lowerName, itemKey, itemData.description, categoryName);
-        if (score > bestScore) {
-          bestScore = score;
-          bestMatch = itemData;
-          matchedCategory = categoryName;
+**INSTRUCTIONS:**
+1. Use the provided dataset as reference to find similar products for each item
+2. Match each product with the most appropriate category from the dataset
+3. Provide accurate CO₂ emission estimates based on dataset patterns
+4. If exact match not found, use similar products from dataset as reference
+5. Maintain the same order as input products
+6. Provide confidence level for each estimate
+
+**REQUIRED JSON RESPONSE FORMAT:**
+[
+  {
+    "name": "product_name_1",
+    "co2": [NUMBER],
+    "unit": "kg",
+    "key": "[category_from_dataset]",
+    "source": "Gemini AI with Dataset Reference",
+    "confidence": "high|medium|low"
+  },
+  {
+    "name": "product_name_2",
+    "co2": [NUMBER],
+    "unit": "kg", 
+    "key": "[category_from_dataset]",
+    "source": "Gemini AI with Dataset Reference",
+    "confidence": "high|medium|low"
+  }
+]
+
+**RESPOND ONLY WITH VALID JSON ARRAY - NO OTHER TEXT**
+**ENSURE ARRAY HAS ${productNames.length} ITEMS IN SAME ORDER**`;
+
+  console.log('[CarbonBuddy] Sending batch request to Gemini AI...');
+
+  try {
+    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent?key=${API_KEY}`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        contents: [{
+          parts: [{
+            text: prompt
+          }]
+        }]
+      })
+    });
+
+    if (!response.ok) {
+      throw new Error(`Gemini API error: ${response.status} ${response.statusText}`);
+    }
+
+    const data = await response.json();
+    console.log('[CarbonBuddy] Gemini batch API response:', data);
+
+    if (data.candidates && data.candidates[0] && data.candidates[0].content) {
+      const aiText = data.candidates[0].content.parts[0].text;
+      console.log('[CarbonBuddy] AI batch response text:', aiText);
+      
+      // Extract JSON array from response
+      const jsonMatch = aiText.match(/\[[\s\S]*\]/);
+      if (jsonMatch) {
+        try {
+          const results = JSON.parse(jsonMatch[0]);
+          console.log('[CarbonBuddy] Parsed batch AI results:', results);
+          
+          if (Array.isArray(results) && results.length === productNames.length) {
+            return results.map(result => ({
+              name: result.name || 'Unknown Product',
+              co2: result.co2 || 2.0,
+              unit: result.unit || 'kg',
+              key: result.key || 'ai_estimated',
+              source: result.source || 'Gemini AI Batch',
+              confidence: result.confidence || 'medium'
+            }));
+          } else {
+            console.log('[CarbonBuddy] Invalid batch result - wrong array length:', results.length, 'expected:', productNames.length);
+            throw new Error('Invalid batch result format');
+          }
+        } catch (parseError) {
+          console.log('[CarbonBuddy] Batch JSON parse error:', parseError);
+          throw new Error('Failed to parse batch AI JSON response');
         }
+      } else {
+        console.log('[CarbonBuddy] No JSON array found in batch AI response');
+        throw new Error('No JSON array in batch AI response');
       }
+    } else {
+      console.log('[CarbonBuddy] No content in batch AI response');
+      throw new Error('No content in batch AI response');
     }
     
-    // If we found a good match (score > 0.3), use it
-    if (bestMatch && bestScore > 0.3) {
-      results.push({
-        co2: bestMatch.co2,
-        unit: bestMatch.unit,
-        key: matchedCategory,
-        source: 'AI Dataset Match',
-        confidence: bestScore > 0.7 ? 'high' : bestScore > 0.5 ? 'medium' : 'low',
-        description: bestMatch.description
-      });
-    } else {
-      // Use category-based estimation
-      results.push(getCategoryEstimation(lowerName, dataset));
-    }
+  } catch (error) {
+    console.error('[CarbonBuddy] Gemini batch AI call failed:', error);
+    throw error;
   }
-  
-  console.log('[CarbonBuddy] Batch AI results:', results);
-  return results;
 }
 
 // Calculate match score between product name and dataset item
@@ -1151,26 +1258,21 @@ function handlePage() {
       if (lastPageType === pageType && lastProduct === name) return;
       lastPageType = pageType; lastProduct = name; lastCart = '';
       observer.disconnect();
-      const co2 = estimateCO2(name);
-      if (co2) {
-        showFloatingBadge(`⚡ This product emits ~<span style="color: #d32f2f; font-weight: 700;">${co2.co2} kg CO₂</span> (${co2.key.replace(/_/g,' ')})`);
-      } else {
-        // Try AI estimation when local data not found
-        console.log('[CarbonBuddy] No local data found, trying AI for:', name);
-        
-        // Direct test of AI function
-        getAIEstimation(name).then(result => {
-          console.log('[CarbonBuddy] AI returned:', result);
-          if (result && result.co2) {
-            showFloatingBadge(`<span style="color: #d32f2f; font-weight: 700;">${result.co2} kg CO₂</span> emitted by this product`, false, true);
-          } else {
-            showFloatingBadge('⚡ <span style="color: #d32f2f; font-weight: 700;">AI failed - no data</span>');
-          }
-        }).catch(err => {
-          console.error('[CarbonBuddy] AI promise failed:', err);
-          showFloatingBadge('⚡ <span style="color: #d32f2f; font-weight: 700;">AI error occurred</span>');
-        });
-      }
+      
+      // Direct AI estimation for all products (no loading message)
+console.log('[CarbonBuddy] Getting AI estimate for:', name);
+getAIEstimation(name).then(result => {
+  console.log('[CarbonBuddy] AI returned:', result);
+  if (result && result.co2) {
+    showFloatingBadge(`<span style="color: #d32f2f; font-weight: 700;">${result.co2} kg CO₂</span> emitted by this product`, false, true);
+  } else {
+    showFloatingBadge('⚡ <span style="color: #d32f2f; font-weight: 700;">CO₂ data not available</span>');
+  }
+}).catch(err => {
+  console.error('[CarbonBuddy] AI promise failed:', err);
+  showFloatingBadge('⚡ <span style="color: #d32f2f; font-weight: 700;">CO₂ data not available</span>');
+});
+
       observer.observe(document.body, { childList: true, subtree: true });
     } else if (pageType === 'flipkartProduct') {
       const name = extractFlipkartProductName();
@@ -1178,26 +1280,21 @@ function handlePage() {
       if (lastPageType === pageType && lastProduct === name) return;
       lastPageType = pageType; lastProduct = name; lastCart = '';
       observer.disconnect();
-      const co2 = estimateCO2(name);
-      if (co2) {
-        showFloatingBadge(`⚡ This product emits ~<span style="color: #d32f2f; font-weight: 700;">${co2.co2} kg CO₂</span> (${co2.key.replace(/_/g,' ')})`);
-      } else {
-        // Try AI estimation when local data not found
-        console.log('[CarbonBuddy] No local data found, trying AI for:', name);
-        
-        // Direct test of AI function
-        getAIEstimation(name).then(result => {
-          console.log('[CarbonBuddy] AI returned:', result);
-          if (result && result.co2) {
-            showFloatingBadge(`<span style="color: #d32f2f; font-weight: 700;">${result.co2} kg CO₂</span> emitted by this product`, false, true);
-          } else {
-            showFloatingBadge('⚡ <span style="color: #d32f2f; font-weight: 700;">AI failed - no data</span>');
-          }
-        }).catch(err => {
-          console.error('[CarbonBuddy] AI promise failed:', err);
-          showFloatingBadge('⚡ <span style="color: #d32f2f; font-weight: 700;">AI error occurred</span>');
-        });
-      }
+      
+      // Direct AI estimation for all products (no loading message)
+console.log('[CarbonBuddy] Getting AI estimate for:', name);
+getAIEstimation(name).then(result => {
+  console.log('[CarbonBuddy] AI returned:', result);
+  if (result && result.co2) {
+    showFloatingBadge(`<span style="color: #d32f2f; font-weight: 700;">${result.co2} kg CO₂</span> emitted by this product`, false, true);
+  } else {
+    showFloatingBadge('⚡ <span style="color: #d32f2f; font-weight: 700;">CO₂ data not available</span>');
+  }
+}).catch(err => {
+  console.error('[CarbonBuddy] AI promise failed:', err);
+  showFloatingBadge('⚡ <span style="color: #d32f2f; font-weight: 700;">CO₂ data not available</span>');
+});
+
       observer.observe(document.body, { childList: true, subtree: true });
     } else if (pageType === 'amazonCart') {
       const items = extractAmazonCartItems();

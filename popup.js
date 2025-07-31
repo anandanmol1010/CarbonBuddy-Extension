@@ -1,12 +1,31 @@
-// Update header total emissions
+// Update header total immediately
 function updateHeaderTotal() {
-  chrome.storage.local.get(['purchase_history'], function(data) {
-    const history = data.purchase_history || [];
-    let grandTotalCO2 = 0;
+  chrome.storage.local.get(null, function(data) {
+    let grandTotalGrams = 0;
     
+    // Add cart purchase history (convert kg to grams first)
+    const history = data.purchase_history || [];
+    let cartGrams = 0;
     history.forEach(item => {
-      grandTotalCO2 += item.co2 ? Number(item.co2) : 0;
+      if (item.co2) {
+        cartGrams += Number(item.co2) * 1000;
+      }
     });
+    grandTotalGrams += cartGrams;
+    
+    // Add browsing emissions (already in grams)
+    const browsingLogs = Object.keys(data).filter(k => k.startsWith('browsing_'));
+    let browsingGrams = 0;
+    browsingLogs.forEach(key => {
+      const log = data[key];
+      if (log && log.co2) {
+        browsingGrams += Number(log.co2);
+      }
+    });
+    grandTotalGrams += browsingGrams;
+    
+    // Convert final total back to kg for display with proper rounding
+    const grandTotalCO2 = Math.round(grandTotalGrams) / 1000;
     
     const headerTotalEl = document.getElementById('headerTotalEmissions');
     if (headerTotalEl) {
@@ -46,8 +65,6 @@ document.addEventListener('DOMContentLoaded', function() {
 // Helper function to format date
 function formatDate(ts) {
   try {
-    console.log('Raw timestamp:', ts, 'Type:', typeof ts); // Debug log
-    
     // Handle different timestamp formats
     let date;
     if (typeof ts === 'string') {
@@ -72,11 +89,8 @@ function formatDate(ts) {
       date = ts;
     }
     
-    console.log('Parsed date:', date); // Debug log
-    
     // Check if date is valid
     if (isNaN(date.getTime())) {
-      console.log('Invalid date detected, returning Unknown Date'); // Debug log
       return 'Unknown Date';
     }
     
@@ -91,8 +105,6 @@ function formatDate(ts) {
 function loadPurchaseHistory() {
   chrome.storage.local.get(['purchase_history'], function(data) {
     const history = data.purchase_history || [];
-    console.log('Purchase history data:', history); // Debug log
-    
     // Calculate totals for stats cards
     let totalItems = history.length;
     let grandTotalCO2 = 0;
@@ -101,14 +113,15 @@ function loadPurchaseHistory() {
       grandTotalCO2 += item.co2 ? Number(item.co2) : 0;
     });
     
-    // Update stats cards
+    // Update stats cards only (not header)
     const totalPurchasesEl = document.getElementById('totalPurchases');
     const totalCO2El = document.getElementById('totalCO2');
-    const headerTotalEl = document.getElementById('headerTotalEmissions');
     
     if (totalPurchasesEl) totalPurchasesEl.textContent = totalItems;
     if (totalCO2El) totalCO2El.textContent = grandTotalCO2.toFixed(2);
-    if (headerTotalEl) headerTotalEl.textContent = `${grandTotalCO2.toFixed(2)} kg CO₂`;
+    
+    // Header total is handled by updateHeaderTotal() function which includes browsing data
+    updateHeaderTotal();
     
     // Generate purchase history HTML
     const historyContainer = document.getElementById('purchaseHistory');
@@ -120,7 +133,6 @@ function loadPurchaseHistory() {
       // Group by timestamp (each purchase is an array)
       const grouped = {};
       history.forEach((item, index) => {
-        console.log(`Item ${index}:`, item); // Debug log for each item
         // Use a fallback if timestamp is missing
         const timestamp = item.timestamp || Date.now();
         if (!grouped[timestamp]) grouped[timestamp] = [];
@@ -130,7 +142,6 @@ function loadPurchaseHistory() {
       Object.keys(grouped).sort((a,b)=>b-a).forEach(ts => {
         const items = grouped[ts];
         const date = formatDate(ts);
-        console.log('Processing timestamp:', ts, 'Formatted date:', date); // Debug log
         
         // Capitalize platform name
         const platform = items[0].platform;
@@ -242,9 +253,7 @@ function setupProductChecker() {
 async function estimateCO2(productName) {
   // Directly use Gemini AI for all products
   try {
-    console.log('Calling AI for product:', productName);
     const result = await callGeminiAI(productName);
-    console.log('AI result:', result);
     return result;
   } catch (error) {
     console.error('Gemini AI error:', error);
@@ -466,8 +475,6 @@ Give me the CO2 emission for this product in this exact JSON format only:
   "source": "estimation method"
 }`;
 
-  console.log('Sending prompt to AI:', prompt);
-
   try {
     const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent?key=${API_KEY}`, {
       method: 'POST',
@@ -483,25 +490,19 @@ Give me the CO2 emission for this product in this exact JSON format only:
       })
     });
 
-    console.log('API Response status:', response.status);
-    
     if (!response.ok) {
       throw new Error(`API request failed with status: ${response.status}`);
     }
     
     const data = await response.json();
-    console.log('API Response data:', data);
     
     if (!data.candidates || !data.candidates[0] || !data.candidates[0].content) {
-      console.log('No candidates in response');
       throw new Error('No AI response candidates');
     }
     
     const aiResponse = data.candidates[0].content.parts[0].text;
-    console.log('AI Response text:', aiResponse);
     
     if (!aiResponse || typeof aiResponse !== 'string') {
-      console.log('Invalid AI response text');
       throw new Error('Invalid AI response text');
     }
     
@@ -510,7 +511,6 @@ Give me the CO2 emission for this product in this exact JSON format only:
     if (jsonMatch) {
       try {
         const result = JSON.parse(jsonMatch[0]);
-        console.log('Parsed JSON result:', result);
         
         // Validate the result
         if (result.co2 && typeof result.co2 === 'number' && result.unit) {
@@ -523,15 +523,12 @@ Give me the CO2 emission for this product in this exact JSON format only:
             aiGenerated: true
           };
         } else {
-          console.log('Invalid AI result - missing co2 or unit:', result);
           throw new Error('Invalid AI result format');
         }
       } catch (parseError) {
-        console.log('JSON parse error:', parseError);
         throw new Error('Failed to parse AI JSON response');
       }
     } else {
-      console.log('No JSON found in AI response');
       throw new Error('No JSON in AI response');
     }
     
